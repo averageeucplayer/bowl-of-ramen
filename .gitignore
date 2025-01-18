@@ -1,0 +1,5 @@
+/dist/
+/target/
+/app/target
+/web/dist
+/Cargo.lock
