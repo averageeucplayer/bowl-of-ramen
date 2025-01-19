@@ -1,54 +1,59 @@
-use serde::{Deserialize, Serialize};
-use wasm_bindgen::prelude::*;
+use tauri_sys::event;
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
+use web_sys::console;
+use crate::{api::load, app_context::AppContextProvider, meter::Meter};
+use yew_router::prelude::*;
+use futures::StreamExt;
+use app_core::models::FightUpdate;
 
-use crate::api::load;
 
-#[derive(Clone, Debug, PartialEq)]
-struct AppState {
-    version: String,
-}
 
 #[derive(Clone, Debug, PartialEq)]
 struct Settings {
     
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Routable)]
+enum Route {
+    #[at("/")]
+    Meter,
+    #[at("/settings")]
+    Settings,
+    #[at("/logs")]
+    Logs,
+    #[not_found]
+    #[at("/404")]
+    NotFound,
+}
+
+fn switch(routes: Route) -> Html {
+    match routes {
+        Route::Meter => html! { <Meter></Meter> },
+        Route::Settings => html! { <h1>{ "Settings" }</h1> },
+        Route::Logs => html! { <h1>{ "Logs" }</h1> },
+        Route::NotFound => html! { <h1>{ "404" }</h1> },
+    }
+}
 
 #[function_component(App)]
 pub fn app() -> Html {
-    let app_context = use_state(|| AppState {
-        version: "".to_owned(),
-    });
+   
     let settings_context = use_state(|| Settings {
         
     });
+    let meter_context = use_state(|| Settings {
+        
+    });
 
-    {
-        let context = app_context.clone();
-        use_effect(|| {
-
-            spawn_local(async move {
-                let local_storage = web_sys::window().unwrap().local_storage().unwrap().unwrap();
-                let load_result = load().await.unwrap();
-                let app_state = AppState {
-                    version: load_result.version
-                };
-                context.set(app_state);
-            });
-    
-            || {}
-        });
-    }
 
     html! {
-        <ContextProvider<AppState> context={(*app_context).clone()}>
+        <AppContextProvider>
             <ContextProvider<Settings> context={(*settings_context).clone()}>
-                <main class="container">
-                
-                </main>
+                <BrowserRouter>
+                    <Switch<Route> render={switch} />
+                </BrowserRouter>
             </ContextProvider<Settings>>
-        </ContextProvider<AppState>>
+        </AppContextProvider>
     }
 }

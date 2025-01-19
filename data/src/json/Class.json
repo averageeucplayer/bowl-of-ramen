@@ -1,0 +1,182 @@
+{
+	"101": {
+		"id": 101,
+		"name": "Warrior (Male)",
+		"isSupport": false
+	},
+	"102": {
+		"id": 102,
+		"name": "Berserker",
+		"isSupport": false
+	},
+	"103": {
+		"id": 103,
+		"name": "Destroyer",
+		"isSupport": false
+	},
+	"104": {
+		"id": 104,
+		"name": "Gunlancer",
+		"isSupport": false
+	},
+	"105": {
+		"id": 105,
+		"name": "Paladin",
+		"isSupport": true
+	},
+	"111": {
+		"id": 111,
+		"name": "Female Warrior",
+		"isSupport": false
+	},
+	"112": {
+		"id": 112,
+		"name": "Slayer",
+		"isSupport": false
+	},
+	"201": {
+		"id": 201,
+		"name": "Mage",
+		"isSupport": false
+	},
+	"202": {
+		"id": 202,
+		"name": "Arcanist",
+		"isSupport": false
+	},
+	"203": {
+		"id": 203,
+		"name": "Summoner",
+		"isSupport": false
+	},
+	"204": {
+		"id": 204,
+		"name": "Bard",
+		"isSupport": true
+	},
+	"205": {
+		"id": 205,
+		"name": "Sorceress",
+		"isSupport": false
+	},
+	"301": {
+		"id": 301,
+		"name": "Martial Artist (Female)",
+		"isSupport": false
+	},
+	"302": {
+		"id": 302,
+		"name": "Wardancer",
+		"isSupport": false
+	},
+	"303": {
+		"id": 303,
+		"name": "Scrapper",
+		"isSupport": false
+	},
+	"304": {
+		"id": 304,
+		"name": "Soulfist",
+		"isSupport": false
+	},
+	"305": {
+		"id": 305,
+		"name": "Glaivier",
+		"isSupport": false
+	},
+	"311": {
+		"id": 311,
+		"name": "Martial Artist (Male)",
+		"isSupport": false
+	},
+	"312": {
+		"id": 312,
+		"name": "Striker",
+		"isSupport": false
+	},
+	"313": {
+		"id": 313,
+		"name": "Breaker",
+		"isSupport": false
+	},
+	"401": {
+		"id": 401,
+		"name": "Assassin",
+		"isSupport": false
+	},
+	"402": {
+		"id": 402,
+		"name": "Deathblade",
+		"isSupport": false
+	},
+	"403": {
+		"id": 403,
+		"name": "Shadowhunter",
+		"isSupport": false
+	},
+	"404": {
+		"id": 404,
+		"name": "Reaper",
+		"isSupport": false
+	},
+	"405": {
+		"id": 405,
+		"name": "Souleater",
+		"isSupport": false
+	},
+	"501": {
+		"id": 501,
+		"name": "Gunner (Male)",
+		"isSupport": false
+	},
+	"502": {
+		"id": 502,
+		"name": "Sharpshooter",
+		"isSupport": false
+	},
+	"503": {
+		"id": 503,
+		"name": "Deadeye",
+		"isSupport": false
+	},
+	"504": {
+		"id": 504,
+		"name": "Artillerist",
+		"isSupport": false
+	},
+	"505": {
+		"id": 505,
+		"name": "Machinist",
+		"isSupport": false
+	},
+	"511": {
+		"id": 511,
+		"name": "Gunner (Female)",
+		"isSupport": false
+	},
+	"512": {
+		"id": 512,
+		"name": "Gunslinger",
+		"isSupport": false
+	},
+	"601": {
+		"id": 601,
+		"name": "Specialist",
+		"isSupport": false
+	},
+	"602": {
+		"id": 602,
+		"name": "Artist",
+		"isSupport": true
+	},
+	"603": {
+		"id": 603,
+		"name": "Aeromancer",
+		"isSupport": false
+	},
+	"604": {
+		"id": 604,
+		"name": "Alchemist",
+		"isSupport": false
+	}
+}

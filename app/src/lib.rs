@@ -1,31 +1,41 @@
-use log::error;
-use tauri::{generate_context, generate_handler, Context};
-use tauri_plugin_autostart::MacosLauncher;
-use tauri_plugin_log::{Target, TargetKind};
 mod window_event_handler;
 mod setup_app;
 mod constants;
 mod abstractions;
 mod mocks;
+mod commands;
+mod system_tray;
+mod fight_simulator;
+mod background;
+mod misc;
 
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
-
-pub fn generate_handlers() -> Box<dyn Fn(tauri::ipc::Invoke) -> bool + Send + Sync> {
-    Box::new(generate_handler![greet])
-}
+use log::error;
+use tauri::{generate_context, Context};
+use tauri_plugin_autostart::MacosLauncher;
+use tauri_plugin_log::{Target, TargetKind};
+use commands::generate_handlers;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
 
     std::panic::set_hook(Box::new(|info| {
-        error!("Panicked: {:?}", info);
+        let payload = info.payload();
+        let message = if let Some(s) = payload.downcast_ref::<&str>() {
+            s.to_string()
+        } else if let Some(s) = payload.downcast_ref::<String>() {
+            s.clone()
+        } else {
+            "Unknown panic message".to_string()
+        };
+
+        let location = info.location().map_or("unknown location".to_string(), |location| {
+            format!("{}:{}", location.file(), location.line())
+        });
+
+        error!("Panicked at '{}', {}", message, location);
     }));
 
     let handlers = generate_handlers();
-    let context: Context = generate_context!();
 
     tauri::Builder::default()
             .plugin(tauri_plugin_log::Builder::new()
@@ -50,6 +60,6 @@ pub fn run() {
         .on_window_event(window_event_handler::on_window_event)
         .setup(setup_app::setup_app)
         .invoke_handler(handlers)
-        .run(context)
+        .run(generate_context!())
         .expect("error while running tauri application");
 }
