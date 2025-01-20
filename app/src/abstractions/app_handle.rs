@@ -2,7 +2,7 @@ use tauri::{Manager, Runtime};
 use tauri_plugin_window_state::{AppHandleExt, StateFlags};
 
 use super::AppWindow;
-use std::{error::Error, sync::{Arc, Mutex}};
+use std::error::Error;
 
 pub trait AppHandle: Send + Sync + 'static {
     fn get_window(&self, str: &str) -> Option<Box<dyn AppWindow>>;

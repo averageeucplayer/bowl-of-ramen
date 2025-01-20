@@ -1,13 +1,11 @@
-use app_core::models::{ClassId, EntityId, HitFlag, HitOption, PlayerStats};
+use app_core::models::*;
 use std::{cmp::max, collections::HashSet};
 
-use chrono::{DateTime, Utc};
-use data::json::CLASS_MAP;
+use chrono::{DateTime, TimeDelta, Utc};
+use data::json::{models::Class, CLASS_MAP};
 use log::{debug, info};
 use rand::Rng;
 use serde::Serialize;
-
-use crate::misc::AppEvent;
 
 const HIT_OPTIONS: [HitOption; 3] = [HitOption::BackAttack, HitOption::FlankAttack, HitOption::FrontalAttack];
 
@@ -24,13 +22,10 @@ pub struct AttackResult {
     pub damage: i64
 }
 
-#[derive(Debug, Clone, Serialize)]
-pub struct Player {
-    id: EntityId,
-    name: String,
-    class_id: ClassId,
-    stats: PlayerStats,
-    template: PlayerTemplate
+#[derive(Debug)]
+pub struct PlayerWithTemplate {
+    pub player: Player,
+    pub template: PlayerTemplate
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -40,72 +35,53 @@ pub struct PlayerTemplate {
     max_dmg: i64
 }
 
-
-#[derive(Debug, Clone, Serialize)]
-pub struct Boss<'a> {
-    id: EntityId,
-    name: &'a str,
-    stats: BossStats,
-}
-
-#[derive(Debug, Clone, Default, Serialize)]
-pub struct BossStats {
-    max_hp: i64,
-    hp: i64,
-    max_hp_bars: i64,
-    hp_bars: i64,
-    hp_per_bar: f32,
-    hp_percentage: f32,
-    damage_taken: i64,
-    updated_on: DateTime<Utc>
-}
-
 #[derive(Debug, Default)]
 pub struct FightSimulator<'a> {
     registered_ids: HashSet<EntityId>,
-    dps_class_ids: Vec<ClassId>,
+    dps_classes: Vec<&'a Class<'a>>,
+    sup_classes: Vec<&'a Class<'a>>,
     registered_dps_class_ids: HashSet<ClassId>,
-    sup_class_ids: Vec<ClassId>,
-    players: Vec<Player>,
-    boss: Option<Boss<'a>>,
+    players: Vec<PlayerWithTemplate>,
+    boss: Option<Boss>,
     has_fight_ended: bool,
+    fight_started_on: Option<DateTime<Utc>>,
+    duration: TimeDelta,
 }
 
 impl<'a> FightSimulator<'a> {
     pub fn new() -> Self {
-        let dps_class_ids = CLASS_MAP.values()
+        let dps_classes = CLASS_MAP.values()
             .filter(|class| !class.is_support)
-            .map(|class| class.id)
             .collect();
 
-        let sup_class_ids = CLASS_MAP.values()
+        let sup_classes = CLASS_MAP.values()
             .filter(|class| class.is_support)
-            .map(|class| class.id)
             .collect();
 
         Self {
-            dps_class_ids,
-            sup_class_ids,
+            dps_classes,
+            sup_classes,
             ..Default::default()
         }
     }
 
     pub fn create_8_players(&mut self, min_dmg: i64, max_dmg: i64) {
-
+        let now = Utc::now();
         let mut players =  vec![];
 
         for index in 1..9 {
-            let mut is_support = false;
 
-            let class_id = if index % 4 == 0 {
-                is_support = true;
-                self.random_sup_class_id()
+            let id = self.random_unique_entity_id();
+            let name = self.random_nickname(10);
+
+            let class = if index % 4 == 0 {
+                self.random_sup_class()
             }
             else {
-                self.random_dps_class_id()
+                self.random_dps_class()
             };
 
-            let template = if is_support {
+            let template = if class.is_support {
                 PlayerTemplate {
                     crit_rate: 0.1,
                     min_dmg: 10_000,
@@ -121,14 +97,20 @@ impl<'a> FightSimulator<'a> {
             };
 
             let player = Player {
-                id: self.random_unique_entity_id(),
-                name: self.random_nickname(10),
-                class_id,
+                id,
+                name,
+                class_name: class.name.to_string(),
+                class_id: class.id,
                 stats: PlayerStats::default(),
-                template,
+                created_on: now,
             };
 
-            players.push(player);
+            let player_with_template = PlayerWithTemplate {
+                player,
+                template
+            };
+
+            players.push(player_with_template);
         }
 
         self.players = players;
@@ -143,7 +125,12 @@ impl<'a> FightSimulator<'a> {
     }
     
     pub fn perform_attack_and_update_stats(&mut self) {
+        
         let now = Utc::now();
+        let fight_started_on = self.fight_started_on.get_or_insert_with(|| now);
+        
+        self.duration = *fight_started_on - now;
+        let duration_seconds = self.duration.num_seconds();
 
         let boss = self.boss.as_ref().unwrap();
         let player_index = self.random_player();
@@ -154,13 +141,25 @@ impl<'a> FightSimulator<'a> {
             self.has_fight_ended = true;
         }
 
-        debug!("{:?}", result);
+        // debug!("{:?}", result);
     
-        Self::update_player(player, &result, now);
+        Self::update_player(&mut player.player, &result, duration_seconds, now);
         self.update_boss(&result, now);
+        self.recalculate_dps(duration_seconds);
     }
 
-    fn update_player(player: &mut Player, attack_result: &AttackResult, updated_on: DateTime<Utc>) {
+    fn recalculate_dps(&mut self, duration_seconds: i64) {
+        for player in self.players.iter_mut() {
+            let stats = &mut player.player.stats;
+            stats.dps = Dps::new(stats.total_damage / duration_seconds);
+        }
+    }
+
+    fn update_player(
+        player: &mut Player,
+        attack_result: &AttackResult,
+        duration_seconds: i64,
+        updated_on: DateTime<Utc>) {
         let damage = attack_result.damage;
         let stats = &mut player.stats;
 
@@ -169,10 +168,33 @@ impl<'a> FightSimulator<'a> {
         
         if attack_result.hit_flag == HitFlag::Critical {
             stats.crit_damage += damage;
+            stats.crit_count += 1;
         }
 
+        stats.hit_count += 1;
+
+        stats.crit_rate = stats.crit_count as f32 / stats.hit_count as f32;
+
+        match attack_result.hit_option {
+            HitOption::None => stats.non_positional_attacks_total_damage += damage,
+            HitOption::BackAttack => stats.back_attacks_total_damage += damage,
+            HitOption::FrontalAttack => stats.front_attacks_total_damage += damage,
+            HitOption::FlankAttack => stats.non_positional_attacks_total_damage += damage,
+            HitOption::Max => stats.non_positional_attacks_total_damage += damage,
+        }
+
+        stats.dps = if duration_seconds > 0 {
+            Dps::new(stats.total_damage / duration_seconds)
+        }
+        else {
+            Dps::default()
+        };
+
+        stats.front_attacks_damage_percentage = stats.front_attacks_total_damage as f32 / stats.total_damage as f32;
+        stats.back_attacks_damage_percentage = stats.back_attacks_total_damage as f32 / stats.total_damage as f32;
+        stats.non_positional_attacks_damage_percentage = stats.non_positional_attacks_total_damage as f32 / stats.total_damage as f32;
         stats.updated_on = updated_on;
-        info!("{:?}", stats);
+        // info!("{:?}", stats);
     }
 
     fn perform_attack(boss: &Boss, template: &PlayerTemplate) -> AttackResult {
@@ -210,12 +232,12 @@ impl<'a> FightSimulator<'a> {
         result
     }
 
-    pub fn create_boss(&mut self, name: &'a str, max_hp: i64, hp_bars: i64) {
-
+    pub fn create_boss(&mut self, name: &str, max_hp: i64, hp_bars: i64) {
+        let now = Utc::now();
 
         let boss = Boss {
             id: self.random_unique_entity_id(),
-            name: name,
+            name: name.into(),
             stats: BossStats {
                 max_hp: max_hp,
                 hp: max_hp,
@@ -225,7 +247,8 @@ impl<'a> FightSimulator<'a> {
                 hp_per_bar: ((max_hp as f64) / (hp_bars as f64)).floor() as f32,
                 damage_taken: 0,
                 updated_on: Utc::now()
-            }
+            },
+            created_on: now
         };
 
         self.boss = Some(boss);
@@ -242,10 +265,12 @@ impl<'a> FightSimulator<'a> {
         stats.updated_on = updated_on;
     }
 
-    pub fn to_fight_update_event(&self) -> AppEvent {
-        let app_event = AppEvent::FightUpdate {
-            boss: &self.boss.as_ref().unwrap(),
-            players: &self.players
+    pub fn to_fight_update_event(&self) -> impl AppEvent {
+        let players = self.players.iter().map(|player| player.player.clone()).collect();
+
+        let app_event = FightUpdate {
+            boss: self.boss.clone().unwrap(),
+            players: players
         };
 
         app_event
@@ -302,27 +327,28 @@ impl<'a> FightSimulator<'a> {
         value
     }
 
-    fn random_dps_class_id(&mut self) -> ClassId {
+    fn random_dps_class(&mut self) -> &Class {
         let mut rng = rand::thread_rng();
-        let random_index = rng.gen_range(0..self.dps_class_ids.len());
-        let mut dps_class_id;
+        let random_index = rng.gen_range(0..self.dps_classes.len());
+        let mut dps_class;
 
         loop {
-            dps_class_id = self.dps_class_ids[random_index];
+            dps_class = self.dps_classes[random_index];
+            let class_id = dps_class.id;
 
-            if !self.registered_dps_class_ids.contains(&dps_class_id) {
-                self.registered_dps_class_ids.insert(dps_class_id);
+            if !self.registered_dps_class_ids.contains(&class_id) {
+                self.registered_dps_class_ids.insert(class_id);
                 break;
             }
         }
 
-        dps_class_id
+        dps_class
     }
 
-    fn random_sup_class_id(&self) -> ClassId {
+    fn random_sup_class(&self) -> &Class {
         let mut rng = rand::thread_rng();
-        let random_index = rng.gen_range(0..self.sup_class_ids.len());
+        let random_index = rng.gen_range(0..self.sup_classes.len());
     
-        self.sup_class_ids[random_index]
+        self.sup_classes[random_index]
     }
 }

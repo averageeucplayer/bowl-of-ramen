@@ -1,5 +1,10 @@
+mod player_row;
+mod player_header;
+
 use log::error;
 use log::info;
+use player_header::PlayerHeader;
+use player_row::PlayerRow;
 use tauri_sys::event;
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
@@ -39,35 +44,16 @@ async fn listen_for_updates(state: yew::UseStateHandle<State>) {
             return;
         },
     };
-    info!("fight-update");
+
     while let Some(event) = event_stream.next().await {
        
+        // info!("{:?}", event);
+
         let players = event.payload.players;
 
         state.set(State {
             players
         });
-    }
-}
-
-#[derive(Properties, Debug, PartialEq)]
-pub struct PlayerRowProps {
-    pub player: Player,
-}
-
-#[function_component(PlayerRow)]
-pub fn player_row(props: &PlayerRowProps) -> Html {
-    html! {
-        <>
-            <tr>
-                <td>
-                    <img src="images/classes/101.png" alt="test"/> 
-                </td>
-            </tr>
-            <tr>
-                <td></td>
-            </tr>
-        </>
     }
 }
 
@@ -89,17 +75,13 @@ pub fn meter() -> Html {
     }
 
     let player_rows: Vec<Html> = state.players.clone().iter().map(|player| {
-        html! { <PlayerRow player={player.clone()} /> }
+        html! { <PlayerRow key={player.id} player={player.clone()} /> }
     }).collect(); 
 
     html! {
         <div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>{"Header 1"}</th>
-                    </tr>
-                </thead>
+            <table class="relative w-full table-fixed">
+                <PlayerHeader/>
                 <tbody>
                     {player_rows}
                 </tbody>

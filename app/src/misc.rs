@@ -1,28 +1,12 @@
 use std::error::Error;
 
+use app_core::models::*;
+use log::debug;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, EventTarget};
 
-use crate::fight_simulator::{Boss, Player};
-
-#[derive(Clone, Serialize)]
-pub enum AppEvent<'a> {
-    FightUpdate {
-        players: &'a [Player],
-        boss: &'a Boss<'a>
-    }
-}
-
-impl<'a> AppEvent<'a> {
-    pub fn event_name(&self) -> &'static str {
-        match &self {
-            AppEvent::FightUpdate { .. } => "fight-update",
-        }
-    }
-}
-
 pub trait AppEventEmitter : Send + Sync + 'static  {
-    fn emit(&self, event: AppEvent) -> Result<(), Box<dyn Error + Send + Sync>>;
+    fn emit(&self, event: impl AppEvent) -> Result<(), Box<dyn Error + Send + Sync>>;
 }
 
 pub struct DefaultEventEmitter {
@@ -31,8 +15,10 @@ pub struct DefaultEventEmitter {
 }
 
 impl AppEventEmitter for DefaultEventEmitter {
-    fn emit(&self, event: AppEvent) -> Result<(), Box<dyn Error + Send + Sync>> {
+    fn emit(&self, event: impl AppEvent) -> Result<(), Box<dyn Error + Send + Sync>> {
 
+        // let json_string = serde_json::to_string_pretty(&event)?;
+        // debug!("{json_string}");
         self.app_handle.emit_to(self.target.clone(), event.event_name(), event)?;
         Ok(())
     }

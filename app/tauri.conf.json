@@ -14,15 +14,15 @@
         "label": "main",
         "title": "Meter",
         "fullscreen": false,
-        "width": 500,
-        "height": 350,
+        "width": 1024,
+        "height": 800,
         "resizable": true,
         "decorations": false,
         "transparent": true,
         "minWidth": 400,
         "minHeight": 120,
         "alwaysOnTop": true,
-        "visible": false
+        "visible": true
       },
       {
         "label": "logs",

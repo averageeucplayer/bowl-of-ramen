@@ -1,12 +1,14 @@
 use std::{error::Error, sync::Arc, time::Duration};
 
+use log::debug;
 use tokio::time::sleep;
 
 use crate::{fight_simulator::FightSimulator, misc::AppEventEmitter};
 
 
-pub async fn run_background_work(event_emitter: Arc<dyn AppEventEmitter>) -> Result<(), Box<dyn Error + Send + Sync>> {
+pub async fn run_background_work<E: AppEventEmitter>(event_emitter: Arc<E>) -> Result<(), Box<dyn Error + Send + Sync>> {
     
+    debug!("run_background_work");
     // let event_emitter = event_emitter.as_ref();
 
     let mut fight_simulator = FightSimulator::new();
@@ -14,7 +16,7 @@ pub async fn run_background_work(event_emitter: Arc<dyn AppEventEmitter>) -> Res
     let max_dmg = 1_100_000_000;
     fight_simulator.create_8_players(min_dmg, max_dmg);
     fight_simulator.create_boss("Test Boss", 100_000_000_000, 300);
-    let one_second = Duration::from_secs(1);
+    let one_second = Duration::from_millis(500);
 
     loop {
         if fight_simulator.has_ended() {

@@ -36,9 +36,11 @@ pub fn run() {
     }));
 
     let handlers = generate_handlers();
+    let context: Context = generate_context!();
 
     tauri::Builder::default()
             .plugin(tauri_plugin_log::Builder::new()
+            .level(log::LevelFilter::Debug)
             .targets([
                 Target::new(TargetKind::Stdout),
                 Target::new(TargetKind::LogDir {
@@ -60,6 +62,6 @@ pub fn run() {
         .on_window_event(window_event_handler::on_window_event)
         .setup(setup_app::setup_app)
         .invoke_handler(handlers)
-        .run(generate_context!())
+        .run(context)
         .expect("error while running tauri application");
 }
