@@ -5,6 +5,7 @@ edition = "2021"
 rust-version = "1.82.0"
 
 [dependencies]
+rustc-hash = "2.1.0"
 chrono = { version = "0.4.31", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
 serde_with = "3.5.1"

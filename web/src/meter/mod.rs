@@ -1,6 +1,9 @@
 mod player_row;
 mod player_header;
+mod dps_bar;
+mod fight_update_example;
 
+use html::Scope;
 use log::error;
 use log::info;
 use player_header::PlayerHeader;
@@ -16,22 +19,12 @@ use app_core::models::*;
 struct State {
     pub players: Vec<Player>
 }
-    // {
-    //     use_effect_with(context_dep, move |_| {
 
-    //         spawn_local(async move {
-    //             let mut event_stream = event::listen::<FightUpdate>("fight-update").await.unwrap();
-
-    //             while let Some(event) = event_stream.next().await {
-    //                 let players = event.payload.players;
-    //             }
-    //         });
-    //         || {}
-    //     });
-    // }
-
-async fn listen_for_updates(state: yew::UseStateHandle<State>) {
-    let mut event_stream = match event::listen::<FightUpdate>("fight-update").await {
+async fn listen_for_updates(link: Scope<Meter>) {
+    
+    let event_stream_result = fight_update_example::fake_listen().await;
+    // let event_stream_result = event::listen::<FightUpdate>("fight-update").await;
+    let mut event_stream = match event_stream_result {
         Ok(stream) => stream,
         Err(err) => {
 
@@ -46,49 +39,79 @@ async fn listen_for_updates(state: yew::UseStateHandle<State>) {
     };
 
     while let Some(event) = event_stream.next().await {
-       
-        // info!("{:?}", event);
-
-        let players = event.payload.players;
-
-        state.set(State {
-            players
-        });
+        link.send_message(MeterMessage::Update(event.payload));
     }
 }
 
-#[function_component(Meter)]
-pub fn meter() -> Html {
-    let state = use_state(|| State {
-        players: vec![]
-    });
+pub struct Meter {
+    stats: Option<EncounterStats>,
+    players: Vec<Player>,
+    boss: Option<Boss>
+}
 
-    {
-        let state = state.clone();
-        use_effect(move || {
-            spawn_local(async move {
-                listen_for_updates(state).await; 
-            });
-    
-            || {}
+pub enum MeterMessage {
+    Update(FightUpdate),
+    Error
+}
+
+impl Component for Meter {
+    type Message = MeterMessage;
+    type Properties = ();
+
+    fn create(context: &Context<Self>) -> Self {
+        let link = context.link().clone();
+
+        spawn_local(async move {
+            listen_for_updates(link).await;
         });
+
+        Self {
+            stats: None,
+            players: vec![],
+            boss: None
+        }
     }
 
-    let player_rows: Vec<Html> = state.players.clone().iter().map(|player| {
-        html! { <PlayerRow key={player.id} player={player.clone()} /> }
-    }).collect(); 
+    fn update(&mut self, _context: &Context<Self>, message: Self::Message) -> bool {      
+        match message {
+            MeterMessage::Update(payload) => {
+                self.players = payload.players;
+                self.boss = Some(payload.boss);
+                true
+            },
+            MeterMessage::Error => {
+                false
+            },
+        }
+    }
 
-    html! {
-        <div>
-            <table class="relative w-full table-fixed">
-                <PlayerHeader/>
-                <tbody>
-                    {player_rows}
-                </tbody>
-            </table>
-        </div>
+    fn view(&self, _context: &Context<Self>) -> Html {
+      
+        let player_rows: Vec<Html> = self.players.clone().iter().map(|player| {
+            html! { <PlayerRow key={player.id} player={player.clone()} /> }
+        }).collect();
+
+        if let Some(boss) = &self.boss {
+            return  html! {
+                <div data-tauri-drag-region="true">
+                    <div class="flex">
+                        {boss.name.clone()}
+                    </div>
+                    <img class="absolute w-full brightness-25" src="public/images/bosses/narkiel.png"/>
+                    <table class="relative w-full table-fixed">
+                        <PlayerHeader/>
+                        <tbody>
+                            {player_rows}
+                        </tbody>
+                    </table>
+                </div>
+            };
+        }
+
+        html! {}
     }
 }
+
 
 // let navigator = use_navigator().unwrap();
 
@@ -99,3 +122,4 @@ pub fn meter() -> Html {
 //         <button {onclick}>{"click to go home"}</button>
 //     }
 // };
+

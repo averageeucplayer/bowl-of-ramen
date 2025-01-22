@@ -17,5 +17,5 @@ pub fn abbreviate_number(num: i64) -> (f64, char) {
         return (num / 1e3, 'k');
     }
     
-    (num, '\0')
+    (num, ' ')
 }

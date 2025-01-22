@@ -17,8 +17,8 @@ pub struct DefaultEventEmitter {
 impl AppEventEmitter for DefaultEventEmitter {
     fn emit(&self, event: impl AppEvent) -> Result<(), Box<dyn Error + Send + Sync>> {
 
-        // let json_string = serde_json::to_string_pretty(&event)?;
-        // debug!("{json_string}");
+        let json_string = serde_json::to_string_pretty(&event)?;
+        debug!("{json_string}");
         self.app_handle.emit_to(self.target.clone(), event.event_name(), event)?;
         Ok(())
     }

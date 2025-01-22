@@ -1,4 +1,5 @@
-// #![allow(unused_imports)]
+#![allow(unused_imports)]
+
 use crate::abstractions::*;
 use raw_window_handle::HasWindowHandle;
 use std::{sync::{Arc, Mutex}, error::Error, path::Path};
